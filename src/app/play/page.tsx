@@ -5,12 +5,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NameInput } from "@/components/NameInput";
 import generateGameCode from "@/utils/gameCode";
-import { useSocket } from "@/hooks/useSocket";
 import { v4 as uuidv4 } from "uuid";
+import {db, CluegenGame} from '@/lib/firestore';
+import { addDoc, collection, query, where, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
+import { PROMPTS } from "@/utils/prompts";
+import { useUserId } from "@/hooks/useUserId";
 
 export default function Play() {
   const router = useRouter();
-  const socket = useSocket();
   const [showNameInput, setShowNameInput] = useState(false);
   const [gameCode, setGameCode] = useState("");
   const [error, setError] = useState("");
@@ -19,8 +21,31 @@ export default function Play() {
     isHost: boolean;
   } | null>(null);
 
-  const handleCreateGame = () => {
+  const { userId } = useUserId();
+
+  const handleCreateGame = async () => {
     const newGameCode = generateGameCode();
+
+    const data: CluegenGame = {
+      id: uuidv4(),
+      code: newGameCode,
+      prompt: PROMPTS[Math.floor(Math.random() * PROMPTS.length)],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      users: [{id: userId!, name: "", score: 0}],
+      host: userId!,
+      gameTime: 30,
+      isTimerDone: false,
+      messages: [],
+    };
+    try {
+      const docRef = await addDoc(collection(db, "games"), data);
+      console.log("Game created with ID:", docRef.id);
+    } catch (error) {
+      console.error("Error creating game:", error);
+    }
+
+
     setCurrentGameState({ code: newGameCode, isHost: true });
     setShowNameInput(true);
     setError("");
@@ -32,45 +57,75 @@ export default function Play() {
       return;
     }
 
-    // Check if game exists
-    const response = await fetch(`/api/game/${gameCode}/check`);
-    const data = await response.json();
 
-    if (!data.exists) {
+    const gamesRef = collection(db, "games");
+    const q = query(gamesRef, where("code", "==", gameCode));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      setCurrentGameState({ code: gameCode, isHost: false });
+      setShowNameInput(true);
+      setError("");
+    } else {
       setError("Game not found");
-      return;
     }
 
-    setCurrentGameState({ code: gameCode, isHost: false });
-    setShowNameInput(true);
-    setError("");
   };
 
   const handleNameSubmit = async (name: string) => {
-    if (!currentGameState || !socket) return;
+    if (!currentGameState || !userId) return;
 
-    const playerId = uuidv4();
-    const player = {
-      id: playerId,
-      name: name,
-      score: 0,
-    };
+    const gamesRef = collection(db, "games");
+    const q = query(gamesRef, where("code", "==", currentGameState.code));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const gameDoc = querySnapshot.docs[0];
+      const gameData = gameDoc.data() as CluegenGame;
+
+
+      const updatedUsers = gameData.users.map(user => 
+        user.id === userId ? { ...user, name } : user
+      );
+      await updateDoc(gameDoc.ref, {
+        users: updatedUsers,
+        updatedAt: new Date()
+      });
+
+      router.push(
+        `/game/${currentGameState.code}?playerName=${encodeURIComponent(name)}&isHost=false`
+      );
+    }
+
+
+
 
     try {
       if (currentGameState.isHost) {
-        socket.emit("create-game", { gameCode: currentGameState.code, player });
+        // Game was already created in handleCreateGame
+        router.push(
+          `/game/${currentGameState.code}?playerName=${encodeURIComponent(name)}&isHost=true`
+        );
       } else {
-        socket.emit("join-game", { gameCode: currentGameState.code, player });
-      }
+        // Update the existing game document to add the new user
+        const gamesRef = collection(db, "games");
+        const q = query(gamesRef, where("code", "==", currentGameState.code));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const gameDoc = querySnapshot.docs[0];
+          await updateDoc(gameDoc.ref, {
+            users: arrayUnion(userId),
+            updatedAt: new Date()
+          });
 
-      // Navigate to game page
-      router.push(
-        `/game/${
-          currentGameState.code
-        }?playerId=${playerId}&playerName=${encodeURIComponent(name)}&isHost=${
-          currentGameState.isHost
-        }`
-      );
+          router.push(
+            `/game/${currentGameState.code}?playerName=${encodeURIComponent(name)}&isHost=false`
+          );
+        } else {
+          throw new Error("Game not found");
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to join game");
       setShowNameInput(false);
