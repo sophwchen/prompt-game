@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -33,6 +33,13 @@ const PROMPTS = [
   "Tooth Fairy",
 ];
 
+interface ChatMessage {
+  id: string;
+  content: string;
+  sender: string;
+  isCorrect?: boolean;
+}
+
 export default function SoloPlay() {
   const [gameStarted, setGameStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
@@ -42,6 +49,10 @@ export default function SoloPlay() {
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [playerName, setPlayerName] = useState("Player");
 
   const getRandomPrompt = () => {
     const randomIndex = Math.floor(Math.random() * PROMPTS.length);
@@ -62,6 +73,10 @@ export default function SoloPlay() {
 
     return () => clearInterval(timer);
   }, [gameStarted, timeLeft]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +125,35 @@ export default function SoloPlay() {
     setCurrentPrompt(getRandomPrompt());
   };
 
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    let messageContent = newMessage.trim();
+    let isCorrectGuess = false;
+
+    // Check if the message matches the prompt (case insensitive)
+    if (
+      gameStarted &&
+      !isGameOver &&
+      messageContent.toLowerCase() === currentPrompt.toLowerCase()
+    ) {
+      messageContent = "Correct! 🎉";
+      isCorrectGuess = true;
+      setIsGameOver(true);
+    }
+
+    const message: ChatMessage = {
+      id: Date.now().toString(),
+      content: messageContent,
+      sender: playerName,
+      isCorrect: isCorrectGuess,
+    };
+
+    setMessages((prev) => [...prev, message]);
+    setNewMessage("");
+  };
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -151,8 +195,25 @@ export default function SoloPlay() {
               <h2 className="text-xl font-bold text-white mb-4">
                 Player Leaderboard
               </h2>
-              <div className="text-white/50">
-                Leaderboard content goes here...
+              <div className="space-y-2">
+                {[
+                  { name: "ProGamer123", score: 2500 },
+                  { name: "ArtMaster", score: 2100 },
+                  { name: "PixelPro", score: 1850 },
+                  { name: "CreativeQueen", score: 1700 },
+                  { name: "DrawMaster99", score: 1500 },
+                  { name: "ClueGuru", score: 1350 },
+                  { name: "ArtisticSoul", score: 1200 },
+                  { name: "GameWizard", score: 1000 },
+                ].map((player, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center text-white py-1 px-2 rounded bg-white/10"
+                  >
+                    <span className="font-medium">{player.name}</span>
+                    <span className="text-white/80">{player.score}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -206,9 +267,52 @@ export default function SoloPlay() {
             </div>
 
             {/* Chat Section */}
-            <div className="lg:col-span-1 bg-white/20 backdrop-blur-md rounded-xl p-4">
+            <div className="lg:col-span-1 bg-white/20 backdrop-blur-md rounded-xl p-4 flex flex-col h-[600px]">
               <h2 className="text-xl font-bold text-white mb-4">Chat</h2>
-              <div className="text-white/50">Chat content goes here...</div>
+
+              {/* Messages Container */}
+              <div className="flex-1 overflow-y-auto mb-4 space-y-2">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex flex-col ${
+                      message.sender === playerName
+                        ? "items-end"
+                        : "items-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                        message.isCorrect
+                          ? "bg-green-500/30 text-green-300 font-bold"
+                          : message.sender === playerName
+                          ? "bg-white/20 text-white"
+                          : "bg-white/10 text-white"
+                      }`}
+                    >
+                      <div className="text-sm font-bold text-white/80">
+                        {message.sender}
+                      </div>
+                      <div>{message.content}</div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Chat Input Form */}
+              <form onSubmit={handleSendMessage} className="mt-auto">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    disabled={isGameOver}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder={isGameOver ? "Game Over" : "Type a message..."}
+                  />
+                </div>
+              </form>
             </div>
           </div>
 
