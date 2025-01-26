@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Chat } from "@/components/Chat";
 
 const PROMPTS = [
   "Netflix",
@@ -189,37 +190,10 @@ export default function SoloPlay() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Player Leaderboard Section */}
-            <div className="lg:col-span-1 bg-white/20 backdrop-blur-md rounded-xl p-4">
-              <h2 className="text-xl font-bold text-white mb-4">
-                Player Leaderboard
-              </h2>
-              <div className="space-y-2">
-                {[
-                  { name: "ProGamer123", score: 2500 },
-                  { name: "ArtMaster", score: 2100 },
-                  { name: "PixelPro", score: 1850 },
-                  { name: "CreativeQueen", score: 1700 },
-                  { name: "DrawMaster99", score: 1500 },
-                  { name: "ClueGuru", score: 1350 },
-                  { name: "ArtisticSoul", score: 1200 },
-                  { name: "GameWizard", score: 1000 },
-                ].map((player, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center text-white py-1 px-2 rounded bg-white/10"
-                  >
-                    <span className="font-medium">{player.name}</span>
-                    <span className="text-white/80">{player.score}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Image Display */}
             <div className="lg:col-span-2">
-              <div className="aspect-square bg-white/20 backdrop-blur-md rounded-xl overflow-hidden relative">
+              <div className="max-w-2xl mx-auto aspect-square bg-white/20 backdrop-blur-md rounded-xl overflow-hidden relative">
                 {generatedImage && !imageError ? (
                   <Image
                     src={generatedImage}
@@ -266,54 +240,15 @@ export default function SoloPlay() {
               )}
             </div>
 
-            {/* Chat Section */}
-            <div className="lg:col-span-1 bg-white/20 backdrop-blur-md rounded-xl p-4 flex flex-col h-[600px]">
-              <h2 className="text-xl font-bold text-white mb-4">Chat</h2>
-
-              {/* Messages Container */}
-              <div className="flex-1 overflow-y-auto mb-4 space-y-2">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex flex-col ${
-                      message.sender === playerName
-                        ? "items-end"
-                        : "items-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                        message.isCorrect
-                          ? "bg-green-500/30 text-green-300 font-bold"
-                          : message.sender === playerName
-                          ? "bg-white/20 text-white"
-                          : "bg-white/10 text-white"
-                      }`}
-                    >
-                      <div className="text-sm font-bold text-white/80">
-                        {message.sender}
-                      </div>
-                      <div>{message.content}</div>
-                    </div>
-                  </div>
-                ))}
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Chat Input Form */}
-              <form onSubmit={handleSendMessage} className="mt-auto">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    disabled={isGameOver}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                    placeholder={isGameOver ? "Game Over" : "Type a message..."}
-                  />
-                </div>
-              </form>
-            </div>
+            {/* Chat Section - Now using the Chat component */}
+            <Chat
+              messages={messages}
+              newMessage={newMessage}
+              playerName={playerName}
+              isGameOver={isGameOver}
+              onMessageChange={setNewMessage}
+              onSendMessage={handleSendMessage}
+            />
           </div>
 
           {isGameOver && (
