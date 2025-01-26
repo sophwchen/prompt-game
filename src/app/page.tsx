@@ -9,7 +9,7 @@ export default function Home() {
   const handleStartPlaying = () => {
     setIsTransitioning(true);
     setTimeout(() => {
-      router.push("/play");
+      router.push("/solo");
     }, 500);
   };
 

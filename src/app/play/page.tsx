@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NameInput } from "@/components/NameInput";
 import generateGameCode from "@/utils/gameCode";
-import { useGameState } from "@/hooks/useGameState";
+import { useSocket } from "@/hooks/useSocket";
 import { v4 as uuidv4 } from "uuid";
 
 export default function Play() {
   const router = useRouter();
+  const socket = useSocket();
   const [showNameInput, setShowNameInput] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
   const [gameCode, setGameCode] = useState("");
   const [error, setError] = useState("");
   const [currentGameState, setCurrentGameState] = useState<{
@@ -19,29 +19,11 @@ export default function Play() {
     isHost: boolean;
   } | null>(null);
 
-  // Only initialize game state when we have a game code
-  const {
-    createGame,
-    joinGame,
-    gameState,
-    error: gameError,
-  } = useGameState(currentGameState?.code ?? "");
-
-  // Handle game error updates
-  useEffect(() => {
-    if (gameError) {
-      setError(gameError);
-      setShowNameInput(false);
-      setCurrentGameState(null);
-    }
-  }, [gameError]);
-
   const handleCreateGame = () => {
     const newGameCode = generateGameCode();
     setCurrentGameState({ code: newGameCode, isHost: true });
-    setIsJoining(false);
     setShowNameInput(true);
-    setError(""); // Clear any previous errors
+    setError("");
   };
 
   const handleJoinGame = async () => {
@@ -50,30 +32,38 @@ export default function Play() {
       return;
     }
 
+    // Check if game exists
+    const response = await fetch(`/api/game/${gameCode}/check`);
+    const data = await response.json();
+
+    if (!data.exists) {
+      setError("Game not found");
+      return;
+    }
+
     setCurrentGameState({ code: gameCode, isHost: false });
-    setIsJoining(true);
     setShowNameInput(true);
-    setError(""); // Clear any previous errors
+    setError("");
   };
 
   const handleNameSubmit = async (name: string) => {
-    if (!currentGameState) return;
+    if (!currentGameState || !socket) return;
 
     const playerId = uuidv4();
     const player = {
       id: playerId,
       name: name,
-      socketId: "", // This will be set by the server
+      score: 0,
     };
 
     try {
       if (currentGameState.isHost) {
-        await createGame.mutateAsync(player);
+        socket.emit("create-game", { gameCode: currentGameState.code, player });
       } else {
-        await joinGame.mutateAsync(player);
+        socket.emit("join-game", { gameCode: currentGameState.code, player });
       }
 
-      // If successful, redirect to the game page
+      // Navigate to game page
       router.push(
         `/game/${
           currentGameState.code
