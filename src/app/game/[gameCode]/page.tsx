@@ -91,18 +91,12 @@ export default function SoloPlay() {
 	}, []);
 
 	useEffect(() => {
-		let timer: NodeJS.Timeout;
-		if (gameStarted && timeLeft > 0) {
-			timer = setInterval(() => {
-				setTimeLeft((prev) => prev - 1);
-			}, 1000);
-		}
+		
 
 		if (timeLeft === 0) {
 			setIsGameOver(true);
 		}
 
-		return () => clearInterval(timer);
 	}, [gameStarted, timeLeft]);
 
 	useEffect(() => {
