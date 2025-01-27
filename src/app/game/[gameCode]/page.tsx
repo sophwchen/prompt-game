@@ -228,18 +228,21 @@ export default function SoloPlay() {
 
 					{/* <BeginGame /> */}
 					<div className="flex items-center justify-between mb-8">
-						{!gameStarted && isHost ? (
+						{!gameStarted && isHost && (
 							<button
 								onClick={handleStartGame}
 								className="px-8 py-4 bg-white/40 hover:bg-white/50 text-white rounded-xl transition-all duration-200 text-xl font-bold"
 							>
 								Begin Game
 							</button>
-						) : (
-							<div className="text-4xl font-bold text-white game-title">
+						)}
+						{
+							gameStarted && isHost && (
+								<div className="text-4xl font-bold text-white game-title">
 								{currentPrompt}
 							</div>
-						)}
+							)
+						}
 
 						{gameStarted && (
 							<div className="text-4xl font-bold text-white">
