@@ -14,6 +14,8 @@ import {
 	getDocs,
 	doc,
 	onSnapshot,
+	arrayUnion,
+	updateDoc,
 } from "firebase/firestore";
 import useGameCode from "@/hooks/useGameCode";
 import { useUserId } from "@/hooks/useUserId";
@@ -146,7 +148,7 @@ export default function SoloPlay() {
 		setGeneratedImage(null);
 	};
 
-	const handleSendMessage = (e: React.FormEvent) => {
+	const handleSendMessage = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!newMessage.trim()) return;
 
@@ -170,6 +172,14 @@ export default function SoloPlay() {
 			sender: playerName,
 			isCorrect: isCorrectGuess,
 		};
+
+		const gamesRef = collection(db, "games");
+		const q = query(gamesRef, where("code", "==", gameCode as string));
+		const querySnapshot = await getDocs(q);
+		const gameDoc = querySnapshot.d ocs[0];
+		await updateDoc(gameDoc.ref, {
+			messages: arrayUnion(message),
+		});
 
 		setMessages((prev) => [...prev, message]);
 		setNewMessage("");
