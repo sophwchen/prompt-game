@@ -145,7 +145,11 @@ export default function SoloPlay() {
 		}
 	};
 
+	const timerRef = useRef<NodeJS.Timeout | null>(null);
+
 	const handleStartGame = async () => {
+		clearInterval(timerRef.current!);
+
 		setGameStarted(true);
 		setUserInput("");
 		setIsGameOver(false);
@@ -164,7 +168,7 @@ export default function SoloPlay() {
 			messages: [],
 		});
 
-		const timer = setInterval(async () => {
+		timerRef.current = setInterval(async () => {
 			const gamesRef = collection(db, "games");
 			const q = query(gamesRef, where("code", "==", gameCode as string));
 			const querySnapshot = await getDocs(q);
@@ -175,7 +179,7 @@ export default function SoloPlay() {
 					timeLeft: gameDoc.data().timeLeft - 1,
 				});
 			} else {
-				clearInterval(timer);
+				clearInterval(timerRef.current!);
 			}	
 		}, 1000);
 	};
@@ -254,6 +258,9 @@ export default function SoloPlay() {
 								Time Left: {timeLeft}s
 							</div>
 						)}
+						<div className="text-4xl font-bold text-white">
+								{gameCode}
+							</div>
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
