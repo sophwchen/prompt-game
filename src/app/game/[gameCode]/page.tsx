@@ -160,6 +160,7 @@ export default function SoloPlay() {
 			timeLeft: 30,
 			generatedImage: "",
 			prompt: PROMPTS[Math.floor(Math.random() * PROMPTS.length)],
+			messages: [],
 		});
 
 		const timer = setInterval(async () => {
