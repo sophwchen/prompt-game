@@ -3,11 +3,12 @@ import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 export const useUserId = () => {
-	const [userId, setUserId] = useState<string | null>(null);
+	const [userId, setUserId] = useState<string | null>(localStorage.getItem("userId"));
 
 	useEffect(() => {
 		// Get or create userId in localStorage
 		const storedUserId = localStorage.getItem("userId");
+		console.log('storedUserId',storedUserId)	
 		if (storedUserId) {
 			setUserId(storedUserId);
 		} else {

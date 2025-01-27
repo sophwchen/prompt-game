@@ -43,6 +43,7 @@ export default function SoloPlay() {
 	const chatEndRef = useRef<HTMLDivElement>(null);
 	const [playerName, setPlayerName] = useState("Player");
 	const { isHost } = useHost();
+	console.log('isHost',isHost)	
 	const gameCode = useGameCode();
 	const { userId } = useUserId();
 	useEffect(() => {
@@ -66,13 +67,13 @@ export default function SoloPlay() {
 				})
 
 			});
-
+			return () => {
+				docRef();
+			};
 			
 		}
-		init();
-		return () => {
-			docRef();
-		};
+		void init();
+		
 	}, []);
 
 	useEffect(() => {
