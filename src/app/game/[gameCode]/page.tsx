@@ -19,6 +19,7 @@ import {
 	Unsubscribe,
 } from "firebase/firestore";
 import useGameCode from "@/hooks/useGameCode";
+import { PROMPTS } from "@/utils/prompts";
 
 interface ChatMessage {
 	id: string;
@@ -157,6 +158,8 @@ export default function SoloPlay() {
 		await updateDoc(gameDoc.ref, {
 			gameStarted: true,
 			timeLeft: 30,
+			generatedImage: "",
+			prompt: PROMPTS[Math.floor(Math.random() * PROMPTS.length)],
 		});
 
 		const timer = setInterval(async () => {
