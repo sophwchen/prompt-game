@@ -16,6 +16,7 @@ import {
 	onSnapshot,
 } from "firebase/firestore";
 import useGameCode from "@/hooks/useGameCode";
+import { useUserId } from "@/hooks/useUserId";
 
 interface ChatMessage {
 	id: string;
@@ -40,7 +41,7 @@ export default function SoloPlay() {
 	const [playerName, setPlayerName] = useState("Player");
 	const { isHost } = useHost();
 	const gameCode = useGameCode();
-
+	const { userId } = useUserId();
 	useEffect(() => {
 		async function init() {
 			const gamesRef = collection(db, "games");
@@ -54,6 +55,11 @@ export default function SoloPlay() {
 				setGeneratedImage(doc.data()?.imageUrl);
 				setTimeLeft(doc.data()?.timeLeft);
 				setMessages(doc.data()?.messages);
+				gameDoc.data().users.forEach((user: { id: string; name: string, score: number }) => {
+					if(user.id === userId){
+						setPlayerName(user.name);
+					}
+				})
 
 			});
 
