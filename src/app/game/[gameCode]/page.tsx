@@ -16,6 +16,7 @@ import {
 	onSnapshot,
 	arrayUnion,
 	updateDoc,
+	Unsubscribe,
 } from "firebase/firestore";
 import useGameCode from "@/hooks/useGameCode";
 import { useUserId } from "@/hooks/useUserId";
@@ -45,6 +46,7 @@ export default function SoloPlay() {
 	const gameCode = useGameCode();
 	const { userId } = useUserId();
 	useEffect(() => {
+		let docRef: Unsubscribe;
 		async function init() {
 			const gamesRef = collection(db, "games");
 			const q = query(gamesRef, where("code", "==", gameCode as string));
@@ -53,7 +55,7 @@ export default function SoloPlay() {
 			setCurrentPrompt(gameDoc.data().prompt);
 			setTimeLeft(gameDoc.data().timeLeft);
 
-			const docRef = onSnapshot(doc(db, "games", gameDoc.id), (doc) => {
+			 docRef = onSnapshot(doc(db, "games", gameDoc.id), (doc) => {
 				setGeneratedImage(doc.data()?.imageUrl);
 				setTimeLeft(doc.data()?.timeLeft);
 				setMessages(doc.data()?.messages);
@@ -65,11 +67,12 @@ export default function SoloPlay() {
 
 			});
 
-			return () => {
-				docRef();
-			};
+			
 		}
 		init();
+		return () => {
+			docRef();
+		};
 	}, []);
 
 	useEffect(() => {
@@ -176,7 +179,7 @@ export default function SoloPlay() {
 		const gamesRef = collection(db, "games");
 		const q = query(gamesRef, where("code", "==", gameCode as string));
 		const querySnapshot = await getDocs(q);
-		const gameDoc = querySnapshot.d ocs[0];
+		const gameDoc = querySnapshot.docs[0];
 		await updateDoc(gameDoc.ref, {
 			messages: arrayUnion(message),
 		});
