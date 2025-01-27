@@ -2,12 +2,10 @@
 import { db } from "@/lib/firestore";
 import { collection, where, getDocs, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { useUserId } from "./useUserId";
 import useGameCode from "./useGameCode";
 
 export default function useCheckHost() {
 	const [isHost, setIsHost] = useState(false);
-	const { userId } = useUserId();
 
 	const gameCode = useGameCode();
 
@@ -16,6 +14,9 @@ export default function useCheckHost() {
     }, []);
 
 	const checkHost = async () => {
+
+		const userId = localStorage.getItem("userId");
+
 		console.log('gameCode',gameCode)	
 		console.log('userId',userId)	
 
