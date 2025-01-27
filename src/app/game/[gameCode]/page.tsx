@@ -61,6 +61,7 @@ export default function SoloPlay() {
 				setGeneratedImage(doc.data()?.imageUrl);
 				setTimeLeft(doc.data()?.timeLeft);
 				setMessages(doc.data()?.messages);
+				setCurrentPrompt(doc.data()?.prompt);
 				setGameStarted(doc.data()?.gameStarted);
 				gameDoc
 					.data()
