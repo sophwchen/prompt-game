@@ -185,7 +185,6 @@ export default function SoloPlay() {
 			messages: arrayUnion(message),
 		});
 
-		setMessages((prev) => [...prev, message]);
 		setNewMessage("");
 	};
 
