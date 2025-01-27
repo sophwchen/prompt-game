@@ -19,7 +19,6 @@ import {
 	Unsubscribe,
 } from "firebase/firestore";
 import useGameCode from "@/hooks/useGameCode";
-import { useUserId } from "@/hooks/useUserId";
 
 interface ChatMessage {
 	id: string;
@@ -43,12 +42,13 @@ export default function SoloPlay() {
 	const chatEndRef = useRef<HTMLDivElement>(null);
 	const [playerName, setPlayerName] = useState("Player");
 	const { isHost } = useHost();
-	console.log('isHost',isHost)	
+	console.log("isHost", isHost);
 	const gameCode = useGameCode();
-	const { userId } = useUserId();
 	useEffect(() => {
 		let docRef: Unsubscribe;
 		async function init() {
+			const userId = localStorage.getItem("userId");
+
 			const gamesRef = collection(db, "games");
 			const q = query(gamesRef, where("code", "==", gameCode as string));
 			const querySnapshot = await getDocs(q);
@@ -56,24 +56,26 @@ export default function SoloPlay() {
 			setCurrentPrompt(gameDoc.data().prompt);
 			setTimeLeft(gameDoc.data().timeLeft);
 
-			 docRef = onSnapshot(doc(db, "games", gameDoc.id), (doc) => {
+			docRef = onSnapshot(doc(db, "games", gameDoc.id), (doc) => {
 				setGeneratedImage(doc.data()?.imageUrl);
 				setTimeLeft(doc.data()?.timeLeft);
 				setMessages(doc.data()?.messages);
-				gameDoc.data().users.forEach((user: { id: string; name: string, score: number }) => {
-					if(user.id === userId){
-						setPlayerName(user.name);
-					}
-				})
-
+				setGameStarted(doc.data()?.gameStarted);
+				gameDoc
+					.data()
+					.users.forEach(
+						(user: { id: string; name: string; score: number }) => {
+							if (user.id === userId) {
+								setPlayerName(user.name);
+							}
+						}
+					);
 			});
 			return () => {
 				docRef();
 			};
-			
 		}
 		void init();
-		
 	}, []);
 
 	useEffect(() => {
@@ -120,7 +122,10 @@ export default function SoloPlay() {
 				headers: {
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({ prompt: "cartoon " + userInput, gameCode: gameCode }),
+				body: JSON.stringify({
+					prompt: "cartoon " + userInput,
+					gameCode: gameCode,
+				}),
 			});
 
 			const data = await response.json();
@@ -144,12 +149,36 @@ export default function SoloPlay() {
 		}
 	};
 
-	const handleStartGame = () => {
+	const handleStartGame = async () => {
 		setGameStarted(true);
 		setUserInput("");
 		setIsGameOver(false);
 		setErrorMessage("");
 		setGeneratedImage(null);
+
+		const gamesRef = collection(db, "games");
+		const q = query(gamesRef, where("code", "==", gameCode as string));
+		const querySnapshot = await getDocs(q);
+		const gameDoc = querySnapshot.docs[0];
+		await updateDoc(gameDoc.ref, {
+			gameStarted: true,
+			timeLeft: 30,
+		});
+
+		const timer = setInterval(async () => {
+			const gamesRef = collection(db, "games");
+			const q = query(gamesRef, where("code", "==", gameCode as string));
+			const querySnapshot = await getDocs(q);
+			const gameDoc = querySnapshot.docs[0];
+
+			if (gameDoc.data().timeLeft > 0) {
+				await updateDoc(gameDoc.ref, {
+					timeLeft: gameDoc.data().timeLeft - 1,
+				});
+			} else {
+				clearInterval(timer);
+			}	
+		}, 1000);
 	};
 
 	const handleSendMessage = async (e: React.FormEvent) => {

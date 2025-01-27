@@ -38,6 +38,7 @@ export default function Play() {
       isTimerDone: false,
       messages: [],
       imageUrl: "",
+      gameStarted: false,
     };
     try {
       const docRef = await addDoc(collection(db, "games"), data);

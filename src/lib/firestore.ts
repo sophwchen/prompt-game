@@ -42,6 +42,7 @@ export interface CluegenGame {
     isTimerDone: boolean;
     messages: ChatMessage[];
     imageUrl: string;
+    gameStarted: boolean;
 
 }
 
