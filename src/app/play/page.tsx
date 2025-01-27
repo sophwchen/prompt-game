@@ -37,6 +37,7 @@ export default function Play() {
       gameTime: 30,
       isTimerDone: false,
       messages: [],
+      imageUrl: "",
     };
     try {
       const docRef = await addDoc(collection(db, "games"), data);
