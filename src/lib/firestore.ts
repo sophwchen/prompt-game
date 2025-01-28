@@ -31,13 +31,17 @@ export interface CluegenGame {
   prompt: string;
   createdAt: Date;
   updatedAt: Date;
-  users: User[];
+  users: Array<{ id: string; name: string; score: number }>;
   host: string;
   gameTime: number;
   isTimerDone: boolean;
   messages: ChatMessage[];
   imageUrl: string;
   gameStarted: boolean;
+  promptPhase: boolean;
+  promptTimeLeft: number;
+  guessTimeLeft: number;
+  isGameOver: boolean;
   correctGuesses: string[];
 }
 
