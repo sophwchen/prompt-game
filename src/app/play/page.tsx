@@ -6,8 +6,16 @@ import { useRouter } from "next/navigation";
 import { NameInput } from "@/components/NameInput";
 import generateGameCode from "@/utils/gameCode";
 import { v4 as uuidv4 } from "uuid";
-import {db, CluegenGame} from '@/lib/firestore';
-import { addDoc, collection, query, where, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
+import { db, CluegenGame } from "@/lib/firestore";
+import {
+  addDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
 import { PROMPTS } from "@/utils/prompts";
 import { useUserId } from "@/hooks/useUserId";
 
@@ -32,13 +40,18 @@ export default function Play() {
       prompt: PROMPTS[Math.floor(Math.random() * PROMPTS.length)],
       createdAt: new Date(),
       updatedAt: new Date(),
-      users: [{id: userId!, name: "", score: 0}],
+      users: [{ id: userId!, name: "", score: 0 }],
       host: userId!,
       gameTime: 30,
       isTimerDone: false,
       messages: [],
       imageUrl: "",
       gameStarted: false,
+      promptPhase: true,
+      promptTimeLeft: 15,
+      guessTimeLeft: 45,
+      isGameOver: false,
+      correctGuesses: [],
     };
     try {
       const docRef = await addDoc(collection(db, "games"), data);
@@ -46,7 +59,6 @@ export default function Play() {
     } catch (error) {
       console.error("Error creating game:", error);
     }
-
 
     setCurrentGameState({ code: newGameCode, isHost: true });
     setShowNameInput(true);
@@ -59,7 +71,6 @@ export default function Play() {
       return;
     }
 
-
     const gamesRef = collection(db, "games");
     const q = query(gamesRef, where("code", "==", gameCode));
     const querySnapshot = await getDocs(q);
@@ -71,7 +82,6 @@ export default function Play() {
     } else {
       setError("Game not found");
     }
-
   };
 
   const handleNameSubmit = async (name: string) => {
@@ -80,49 +90,51 @@ export default function Play() {
     const gamesRef = collection(db, "games");
     const q = query(gamesRef, where("code", "==", currentGameState.code));
     const querySnapshot = await getDocs(q);
-    
+
     if (!querySnapshot.empty) {
       const gameDoc = querySnapshot.docs[0];
       const gameData = gameDoc.data() as CluegenGame;
 
-
-      const updatedUsers = gameData.users.map(user => 
+      const updatedUsers = gameData.users.map((user) =>
         user.id === userId ? { ...user, name } : user
       );
       await updateDoc(gameDoc.ref, {
         users: updatedUsers,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
       router.push(
-        `/game/${currentGameState.code}?playerName=${encodeURIComponent(name)}&isHost=false`
+        `/game/${currentGameState.code}?playerName=${encodeURIComponent(
+          name
+        )}&isHost=false`
       );
     }
-
-
-
 
     try {
       if (currentGameState.isHost) {
         // Game was already created in handleCreateGame
         router.push(
-          `/game/${currentGameState.code}?playerName=${encodeURIComponent(name)}&isHost=true`
+          `/game/${currentGameState.code}?playerName=${encodeURIComponent(
+            name
+          )}&isHost=true`
         );
       } else {
         // Update the existing game document to add the new user
         const gamesRef = collection(db, "games");
         const q = query(gamesRef, where("code", "==", currentGameState.code));
         const querySnapshot = await getDocs(q);
-        
+
         if (!querySnapshot.empty) {
           const gameDoc = querySnapshot.docs[0];
           await updateDoc(gameDoc.ref, {
             users: arrayUnion(userId),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           });
 
           router.push(
-            `/game/${currentGameState.code}?playerName=${encodeURIComponent(name)}&isHost=false`
+            `/game/${currentGameState.code}?playerName=${encodeURIComponent(
+              name
+            )}&isHost=false`
           );
         } else {
           throw new Error("Game not found");
